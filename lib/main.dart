@@ -36,23 +36,3 @@ class MyApp extends ConsumerWidget {
     );
   }
 }
-
-class HomePage extends StatelessWidget {
-  const HomePage({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text("Test")),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            TextButton(onPressed: () {}, child: const Text("Push Me!")),
-            const Text('You have pushed the button this many times:'),
-          ],
-        ),
-      ),
-    );
-  }
-}

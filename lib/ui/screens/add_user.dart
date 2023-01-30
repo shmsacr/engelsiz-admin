@@ -1,12 +1,13 @@
+import 'package:collection/collection.dart';
 import 'package:engelsiz_admin/controller/auth_controller.dart';
-import 'package:engelsiz_admin/data/models/teacher_user.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'package:flutter_multi_formatter/flutter_multi_formatter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:form_builder_validators/form_builder_validators.dart';
+
+import '../../data/models/user.dart';
 
 class AddUserView extends ConsumerStatefulWidget {
   const AddUserView({Key? key}) : super(key: key);
@@ -18,7 +19,8 @@ class AddUserView extends ConsumerStatefulWidget {
 class _AddUserViewState extends ConsumerState<AddUserView> {
   final _formKey = GlobalKey<FormBuilderState>();
   final _studentFormKey = GlobalKey<FormBuilderState>();
-  final _phoneNumberController = TextEditingController(text: "+90");
+  final _phoneNumberController =
+      TextEditingController(text: "+90 (555) 555 55 55");
   Role? _role;
 
   @override
@@ -45,6 +47,7 @@ class _AddUserViewState extends ConsumerState<AddUserView> {
                 children: [
                   FormBuilderTextField(
                     name: 'fullName',
+                    initialValue: "EFO",
                     decoration: const InputDecoration(labelText: 'Ad Soyad'),
                     validator: FormBuilderValidators.compose([
                       FormBuilderValidators.required(
@@ -54,6 +57,7 @@ class _AddUserViewState extends ConsumerState<AddUserView> {
                   const SizedBox(height: 16.0),
                   FormBuilderTextField(
                     name: 'email',
+                    initialValue: "EFO@test.com",
                     decoration: const InputDecoration(labelText: 'Email'),
                     validator: FormBuilderValidators.compose([
                       FormBuilderValidators.required(
@@ -83,6 +87,7 @@ class _AddUserViewState extends ConsumerState<AddUserView> {
                   const SizedBox(height: 16.0),
                   FormBuilderTextField(
                     name: 'tc',
+                    initialValue: "21091061404",
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     maxLength: 11,
                     decoration:
@@ -151,7 +156,7 @@ class _AddUserViewState extends ConsumerState<AddUserView> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
-                        child: FormBuilderChoiceChip<Gender>(
+                        child: FormBuilderChoiceChip<String>(
                           name: "gender",
                           alignment: WrapAlignment.spaceEvenly,
                           decoration:
@@ -161,18 +166,14 @@ class _AddUserViewState extends ConsumerState<AddUserView> {
                                 errorText: "Lütfen birini seçiniz."),
                           ]),
                           options: [
-                            FormBuilderChipOption(
-                                value: Gender.male,
-                                child: Text(Gender.male.value)),
-                            FormBuilderChipOption(
-                                value: Gender.female,
-                                child: Text(Gender.female.value))
+                            FormBuilderChipOption(value: Gender.male.value),
+                            FormBuilderChipOption(value: Gender.female.value)
                           ],
                         ),
                       ),
                       const SizedBox(width: 16.0),
                       Expanded(
-                        child: FormBuilderChoiceChip<Role>(
+                        child: FormBuilderChoiceChip<String>(
                           name: "role",
                           alignment: WrapAlignment.spaceEvenly,
                           decoration: _nonBorder.copyWith(labelText: "Rol"),
@@ -180,16 +181,15 @@ class _AddUserViewState extends ConsumerState<AddUserView> {
                             FormBuilderValidators.required(
                                 errorText: "Lütfen birini seçiniz."),
                           ]),
-                          onChanged: ((value) => setState(() {
-                                _role = value;
-                              })),
+                          onChanged: ((value) => setState(
+                                () {
+                                  _role = Role.values.firstWhereOrNull(
+                                      (r) => r.value == value);
+                                },
+                              )),
                           options: [
-                            FormBuilderChipOption(
-                                value: Role.parent,
-                                child: Text(Role.parent.value)),
-                            FormBuilderChipOption(
-                                value: Role.teacher,
-                                child: Text(Role.teacher.value))
+                            FormBuilderChipOption(value: Role.parent.value),
+                            FormBuilderChipOption(value: Role.teacher.value)
                           ],
                         ),
                       )
@@ -200,59 +200,84 @@ class _AddUserViewState extends ConsumerState<AddUserView> {
                   MaterialButton(
                     color: Theme.of(context).colorScheme.secondary,
                     onPressed: () async {
-                      final studentCase = _studentFormKey.currentState == null
-                          ? true
-                          : _studentFormKey.currentState?.saveAndValidate() ??
-                              false;
-                      if ((_formKey.currentState?.saveAndValidate() ?? false) &&
-                          studentCase) {
+                      final User user;
+                      if (_formKey.currentState?.saveAndValidate() ?? false) {
+                        if (_role == Role.teacher) {
+                          user = Teacher.fromJson(_formKey.currentState!.value);
+                        } else if (_studentFormKey.currentState
+                                ?.saveAndValidate() ??
+                            false) {
+                          final Map<String, dynamic> parentJson =
+                              Map.from(_formKey.currentState!.value);
+                          parentJson["student"] =
+                              _studentFormKey.currentState!.value;
+                          user = Parent.fromJson(parentJson);
+                        } else {
+                          debugPrint("Error");
+                          return;
+                        }
                         try {
-                          final UserCredential userCredential = await ref
-                              .read(firebaseAuthProvider)
-                              .createUserWithEmailAndPassword(
-                                  email: _formKey
-                                      .currentState!.fields["email"]!.value
-                                      .toString(),
-                                  password: _formKey
-                                      .currentState!.fields["tc"]!.value
-                                      .toString());
-                          await userCredential.user?.updateDisplayName(_formKey
-                              .currentState!.fields["fullName"]!.value
-                              .toString());
-                          TeacherUser teacherUser = TeacherUser(
-                              fullName: _formKey
-                                  .currentState!.fields["fullName"]!.value,
-                              email:
-                                  _formKey.currentState!.fields["email"]!.value,
-                              phoneNumber: _formKey
-                                  .currentState!.fields["phoneNumber"]!.value
-                                  .replaceAll(
-                                      RegExp(r"\p{P}", unicode: true), ""),
-                              tc: _formKey.currentState!.fields["tc"]!.value,
-                              gender: _formKey
-                                  .currentState!.fields["gender"]!.value);
-                          await ref
-                              .read(fireStoreProvider)
-                              .collection("users")
-                              .doc(userCredential.user?.uid)
-                              .set(teacherUser.toJson());
-                          debugPrint(
-                              "User created w/ id: ${userCredential.user?.uid}");
-                          if (!mounted) return;
-                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                              content: Text(
-                                  "User created w/ id: ${userCredential.user?.uid}")));
+                          await signUp(ref: ref, user: user);
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                  content: Text("User created: ${user.email}")),
+                            );
+                          }
                         } catch (e) {
                           debugPrint(e.toString());
                           ScaffoldMessenger.of(context)
                               .showSnackBar(SnackBar(content: Text("$e")));
                         }
+                        // try {
+                        //   final UserCredential userCredential = await ref
+                        //       .read(firebaseAuthProvider)
+                        //       .createUserWithEmailAndPassword(
+                        //           email: _formKey
+                        //               .currentState!.fields["email"]!.value
+                        //               .toString(),
+                        //           password: _formKey
+                        //               .currentState!.fields["tc"]!.value
+                        //               .toString());
+                        //   await userCredential.user?.updateDisplayName(_formKey
+                        //       .currentState!.fields["fullName"]!.value
+                        //       .toString());
+                        //   Teacher teacherUser = TeacherUser(
+                        //       fullName: _formKey
+                        //           .currentState!.fields["fullName"]!.value,
+                        //       email:
+                        //           _formKey.currentState!.fields["email"]!.value,
+                        //       phoneNumber: _formKey
+                        //           .currentState!.fields["phoneNumber"]!.value
+                        //           .replaceAll(
+                        //               RegExp(r"\p{P}", unicode: true), ""),
+                        //       tc: _formKey.currentState!.fields["tc"]!.value,
+                        //       gender: _formKey
+                        //           .currentState!.fields["gender"]!.value);
+                        //   await ref
+                        //       .read(fireStoreProvider)
+                        //       .collection("users")
+                        //       .doc(userCredential.user?.uid)
+                        //       .set(teacherUser.toJson());
+                        //   debugPrint(
+                        //       "User created w/ id: ${userCredential.user?.uid}");
+                        //   if (!mounted) return;
+                        //   ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                        //       content: Text(
+                        //           "User created w/ id: ${userCredential.user?.uid}")));
+                        // } catch (e) {
+                        //   debugPrint(e.toString());
+                        //   ScaffoldMessenger.of(context)
+                        //       .showSnackBar(SnackBar(content: Text("$e")));
+                        // }
                       } else {
                         debugPrint('Invalid');
                       }
                     },
-                    child: const Text('Signup',
-                        style: TextStyle(color: Colors.white)),
+                    child: const Text(
+                      'Signup',
+                      style: TextStyle(color: Colors.white),
+                    ),
                   )
                 ],
               ),
@@ -291,7 +316,8 @@ class _StudentFormState extends State<StudentForm> {
           Text("Öğrencinin", style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 16.0),
           FormBuilderTextField(
-            name: 'full_name',
+            name: 'fullName',
+            initialValue: "EFO",
             decoration: const InputDecoration(labelText: 'Ad Soyad'),
             validator: FormBuilderValidators.compose([
               FormBuilderValidators.required(
@@ -300,11 +326,27 @@ class _StudentFormState extends State<StudentForm> {
             ]),
           ),
           const SizedBox(height: 16.0),
+          FormBuilderTextField(
+            name: 'tc',
+            initialValue: "21091014495",
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            maxLength: 11,
+            decoration: const InputDecoration(labelText: 'TC Kimlik No'),
+            validator: FormBuilderValidators.compose([
+              FormBuilderValidators.required(
+                  errorText: "Bu alan boş bırakılamaz."),
+              FormBuilderValidators.integer(),
+              FormBuilderValidators.equalLength(
+                11,
+                errorText: "TC Kimlik numarası 11 haneli olmalıdır.",
+              ),
+            ]),
+          ),
+          const SizedBox(height: 16.0),
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                child: FormBuilderChoiceChip<Gender>(
+                child: FormBuilderChoiceChip<String>(
                   name: "gender",
                   alignment: WrapAlignment.spaceEvenly,
                   decoration: _nonBorder.copyWith(labelText: "Cinsiyet"),
@@ -313,10 +355,8 @@ class _StudentFormState extends State<StudentForm> {
                         errorText: "Lütfen birini seçiniz."),
                   ]),
                   options: [
-                    FormBuilderChipOption(
-                        value: Gender.male, child: Text(Gender.male.value)),
-                    FormBuilderChipOption(
-                        value: Gender.female, child: Text(Gender.female.value))
+                    FormBuilderChipOption(value: Gender.male.value),
+                    FormBuilderChipOption(value: Gender.female.value)
                   ],
                 ),
               ),
@@ -324,6 +364,7 @@ class _StudentFormState extends State<StudentForm> {
               Expanded(
                 child: FormBuilderTextField(
                   name: 'age',
+                  keyboardType: TextInputType.number,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   decoration: _nonBorder.copyWith(labelText: "Yaş"),
                   validator: FormBuilderValidators.compose([
@@ -331,6 +372,7 @@ class _StudentFormState extends State<StudentForm> {
                     FormBuilderValidators.required(
                         errorText: "Bu alan boş bırakılamaz."),
                   ]),
+                  valueTransformer: (val) => int.tryParse(val ?? ""),
                 ),
               )
             ],
@@ -340,21 +382,4 @@ class _StudentFormState extends State<StudentForm> {
       ),
     );
   }
-}
-
-enum Gender {
-  male("Erkek"),
-  female("Kadın");
-
-  const Gender(this.value);
-  final String value;
-}
-
-enum Role {
-  admin("Yönetici"),
-  teacher("Öğretmen"),
-  parent("Veli");
-
-  const Role(this.value);
-  final String value;
 }
