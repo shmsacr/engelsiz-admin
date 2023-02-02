@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:engelsiz_admin/data/models/user.dart' as app_user;
+import 'package:engelsiz_admin/data/models/user_with_id.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -28,7 +29,7 @@ enum Gender {
   final String value;
 }
 
-@JsonEnum(valueField: 'value')
+@JsonEnum(valueField: 'name')
 enum Role {
   admin("Yönetici"),
   teacher("Öğretmen"),
@@ -53,3 +54,10 @@ Future<void> signUp(
           parent: (parent) => parent.toJson()));
   debugPrint("User created w/ id: ${userCredential.user?.uid}");
 }
+
+final usersStreamProvider = StreamProvider.autoDispose<List<UserWithId>>((ref) {
+  final stream = ref.watch(fireStoreProvider).collection("users").snapshots();
+  return stream.map((snapshot) => snapshot.docs.map((doc) {
+        return UserWithId(id: doc.id, user: app_user.User.fromJson(doc.data()));
+      }).toList());
+});
