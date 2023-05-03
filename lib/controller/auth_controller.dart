@@ -1,4 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:engelsiz_admin/data/models/class_room.dart' as app_class;
+import 'package:engelsiz_admin/data/models/classroom_with_id.dart';
 import 'package:engelsiz_admin/data/models/user.dart' as app_user;
 import 'package:engelsiz_admin/data/models/user_with_id.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -45,6 +47,7 @@ Future<void> signUp(
       .read(firebaseAuthProvider)
       .createUserWithEmailAndPassword(email: user.email, password: user.tc);
   await userCredential.user?.updateDisplayName(user.fullName);
+  addClass(user, ref, userCredential);
   await ref
       .read(fireStoreProvider)
       .collection("users")
@@ -55,9 +58,47 @@ Future<void> signUp(
   debugPrint("User created w/ id: ${userCredential.user?.uid}");
 }
 
+Future<void> addClass(
+    app_user.User user, WidgetRef ref, UserCredential userCredential) async {
+  bool isTeacher = false;
+  user.map(teacher: (_) => isTeacher = true, parent: (_) => {});
+  for (var element in user.classroom) {
+    await ref
+        .read(fireStoreProvider)
+        .collection('classRooms')
+        .doc(element)
+        .update(isTeacher
+            ? {
+                'teachers': FieldValue.arrayUnion([userCredential.user?.uid])
+              }
+            : {
+                'parents': FieldValue.arrayUnion([userCredential.user?.uid])
+              });
+  }
+}
+
+Future<void> createClass(
+    {required WidgetRef ref, required app_class.Classroom classRoom}) async {
+  await ref
+      .read(fireStoreProvider)
+      .collection('classRooms')
+      .doc()
+      .set(classRoom.toJson());
+}
+
 final usersStreamProvider = StreamProvider.autoDispose<List<UserWithId>>((ref) {
   final stream = ref.watch(fireStoreProvider).collection("users").snapshots();
   return stream.map((snapshot) => snapshot.docs.map((doc) {
         return UserWithId(id: doc.id, user: app_user.User.fromJson(doc.data()));
+      }).toList());
+});
+
+final classStreamProvider =
+    StreamProvider.autoDispose<List<ClassroomWithId>>((ref) {
+  final stream =
+      ref.watch(fireStoreProvider).collection('classRooms').snapshots();
+  return stream.map((snapshot) => snapshot.docs.map((doc) {
+        return ClassroomWithId(
+            id: doc.id, classRoom: app_class.Classroom.fromJson(doc.data()));
       }).toList());
 });
