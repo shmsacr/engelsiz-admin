@@ -1,5 +1,6 @@
 import 'package:engelsiz_admin/controller/auth_controller.dart';
 import 'package:engelsiz_admin/controller/dashboard_controller.dart';
+import 'package:engelsiz_admin/ui/screens/add_class.dart';
 import 'package:engelsiz_admin/ui/screens/add_user.dart';
 import 'package:engelsiz_admin/ui/screens/login/login_screen.dart';
 import 'package:engelsiz_admin/ui/screens/users/users_view.dart';
@@ -14,6 +15,7 @@ class DashboardScreen extends ConsumerWidget {
   final List<Widget> _screens = const <Widget>[
     UsersView(),
     AddUserView(),
+    AddClassView()
   ];
 
   @override
@@ -42,6 +44,10 @@ class DashboardScreen extends ConsumerWidget {
                   NavigationRailDestination(
                     icon: Icon(Icons.person_add),
                     label: Text('Kullanıcı Ekle'),
+                  ),
+                  NavigationRailDestination(
+                    icon: Icon(Icons.add_business),
+                    label: Text('Sınıf Ekle'),
                   ),
                 ],
               ),
