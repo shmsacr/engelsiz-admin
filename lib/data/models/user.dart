@@ -12,6 +12,8 @@ class User with _$User {
       required final String email,
       required final String phoneNumber,
       required final String tc,
+      required final String branch,
+      required final List<String> classroom,
       required final Gender gender}) = Teacher;
 
   @JsonSerializable(explicitToJson: true)
@@ -21,7 +23,7 @@ class User with _$User {
       required final String phoneNumber,
       required final String tc,
       required final Gender gender,
-      required final List<String> teachers,
+      required final List<String> classroom,
       required final Student student}) = Parent;
 
   factory User.fromJson(Map<String, Object?> json) => _$UserFromJson(json);
