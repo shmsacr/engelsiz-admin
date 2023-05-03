@@ -24,11 +24,19 @@ class _AddUserViewState extends ConsumerState<AddUserView> {
   final _phoneNumberController =
       TextEditingController(text: "+90 (555) 555 55 55");
   Role? _role;
+  late TextEditingController _controller;
+  int classNum = 0;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
     super.initState();
-
+    _controller = TextEditingController();
     PhoneInputFormatter.replacePhoneMask(
       countryCode: 'TR',
       newMask: '+00 (000) 000 00 00',
@@ -153,7 +161,61 @@ class _AddUserViewState extends ConsumerState<AddUserView> {
                     ],
                   ),
                   const SizedBox(height: 16.0),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: FormBuilderField<List<String>>(
+                          name: 'classroom',
+                          builder: (FormFieldState field) {
+                            return MultiSelectDialogField<String>(
+                              buttonText: const Text("Sınıf Seçiniz"),
+                              buttonIcon: const Icon(Icons.school_outlined),
+                              searchable: true,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(8.0),
+                                border: Border.all(
+                                  width: 1.0,
+                                  color: AppColors.tertiary,
+                                ),
+                              ),
+                              title: const Text("Sınıf Seçiniz"),
+                              onConfirm: (values) {
+                                if (_role == Role.parent && values.length > 1) {
+                                  print("SAAAAAAAAAAAAAAAAA");
+                                } else {
+                                  field.didChange(values);
+                                }
+                              },
+                              items: ref
+                                      .watch(classStreamProvider)
+                                      .value
+                                      ?.map((classroom) =>
+                                          MultiSelectItem<String>(classroom.id,
+                                              classroom.classRoom.className))
+                                      .toList() ??
+                                  [],
+                            );
+                          },
+                        ),
+                      ),
+                      const SizedBox(
+                        width: 16,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16.0),
                   if (_role == Role.parent) StudentForm(_studentFormKey),
+                  if (_role == Role.teacher)
+                    FormBuilderTextField(
+                      name: 'branch',
+                      decoration:
+                          const InputDecoration(labelText: 'Ogretmen Branşı'),
+                      validator: FormBuilderValidators.compose([
+                        FormBuilderValidators.required(
+                            errorText: "Bu alan boş bırakılamaz."),
+                      ]),
+                    ),
+                  const SizedBox(height: 16.0),
                   MaterialButton(
                     color: Theme.of(context).colorScheme.secondary,
                     onPressed: () async {
@@ -221,34 +283,6 @@ class StudentForm extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return Column(
       children: [
-        FormBuilderField<List<String>>(
-          name: 'teachers',
-          builder: (FormFieldState field) {
-            return MultiSelectDialogField<String>(
-              buttonText: const Text("Öğretmen Seçiniz"),
-              buttonIcon: const Icon(Icons.school_outlined),
-              searchable: true,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8.0),
-                border: Border.all(
-                  width: 1.0,
-                  color: AppColors.tertiary,
-                ),
-              ),
-              title: const Text("Öğretmen Seçiniz"),
-              items: ref
-                      .watch(usersStreamProvider)
-                      .value
-                      ?.map((user) =>
-                          MultiSelectItem<String>(user.id, user.user.fullName))
-                      .toList() ??
-                  [],
-              onConfirm: (values) {
-                field.didChange(values);
-              },
-            );
-          },
-        ),
         const SizedBox(height: 16.0),
         FormBuilder(
           key: studentKey,
@@ -328,3 +362,163 @@ class StudentForm extends ConsumerWidget {
     );
   }
 }
+
+// class CreatClasses extends ConsumerStatefulWidget {
+//   const CreatClasses({
+//     Key? key,
+//   }) : super(key: key);
+//
+//   @override
+//   ConsumerState createState() => _CreatClassesState();
+// }
+//
+// class _CreatClassesState extends ConsumerState<CreatClasses> {
+//   late TextEditingController _controller;
+//
+//   @override
+//   void initState() {
+//     super.initState();
+//     _controller = TextEditingController();
+//   }
+//
+//   @override
+//   void dispose() {
+//     _controller.dispose();
+//     super.dispose();
+//   }
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return Column(
+//       children: [
+//         Row(
+//           children: [
+//             Expanded(
+//               child: FormBuilderField<List<String>>(
+//                 name: 'teachers',
+//                 builder: (FormFieldState field) {
+//                   return MultiSelectDialogField<String>(
+//                     buttonText: const Text("Öğretmen Seçiniz"),
+//                     buttonIcon: const Icon(Icons.school_outlined),
+//                     searchable: true,
+//                     decoration: BoxDecoration(
+//                       borderRadius: BorderRadius.circular(8.0),
+//                       border: Border.all(
+//                         width: 1.0,
+//                         color: AppColors.tertiary,
+//                       ),
+//                     ),
+//                     title: const Text("Öğretmen Seçiniz"),
+//                     items: ref
+//                             .watch(classStreamProvider)
+//                             .value
+//                             ?.map((classroom) => MultiSelectItem<String>(
+//                                 classroom.id, classroom.classRoom.className))
+//                             .toList() ??
+//                         [],
+//                     onConfirm: (values) {
+//                       field.didChange(values);
+//                     },
+//                   );
+//                 },
+//               ),
+//             ),
+//             const SizedBox(
+//               width: 16,
+//             ),
+//             Expanded(
+//                 child: MaterialButton(
+//               color: Theme.of(context).colorScheme.tertiary,
+//               onPressed: () {
+//                 showDialog(
+//                   context: context,
+//                   builder: (BuildContext context) => AlertDialog(
+//                     title: const Text("Oluşturulacak Sıfının Adı"),
+//                     content: TextField(
+//                       controller: _controller,
+//                     ),
+//                     actions: <Widget>[
+//                       TextButton(
+//                         onPressed: () => Navigator.pop(context, 'Cancel'),
+//                         child: const Text('Cancel'),
+//                       ),
+//                       TextButton(
+//                         onPressed: () async {
+//                           final Classroom classRoom = Classroom.fromJson({
+//                             'className': _controller.text,
+//                             'teachers': [],
+//                             'parents': []
+//                           });
+//                           print(_controller.text);
+//
+//                           try {
+//                             await createClass(ref: ref, classRoom: classRoom);
+//                             if (context.mounted) {
+//                               ScaffoldMessenger.of(context).showSnackBar(
+//                                 SnackBar(
+//                                     content: Text(
+//                                         "Class created: ${classRoom.className}")),
+//                               );
+//                             }
+//                           } catch (e) {
+//                             debugPrint(e.toString());
+//                             ScaffoldMessenger.of(context)
+//                                 .showSnackBar(SnackBar(content: Text("$e")));
+//                           }
+//                           Navigator.pop(context, 'OK');
+//                         },
+//                         child: const Text('OK'),
+//                       ),
+//                     ],
+//                   ),
+//                 );
+//               },
+//               child: const Text(
+//                 'Sınıf Oluştur',
+//                 style: TextStyle(color: Colors.white),
+//               ),
+//             )
+//                 // child: MaterialButton(
+//                 //   color: Theme.of(context).colorScheme.tertiary,
+//                 //   onPressed: () {
+//                 //     showDialog(
+//                 //       context: context,
+//                 //       builder: (BuildContext context) => AlertDialog(
+//                 //         title: Text("Oluşturulacak Sınıfın Adı"),
+//                 //         content: FormBuilder(
+//                 //           key: _formKey,
+//                 //           child: FormBuilderTextField(
+//                 //             name: 'className',
+//                 //             decoration: const InputDecoration(
+//                 //                 labelText: 'Sınıf Adını giriniz'),
+//                 //           ),
+//                 //         ),
+//                 //         actions: <Widget>[
+//                 //           TextButton(
+//                 //             onPressed: () => Navigator.pop(context, 'İptal'),
+//                 //             child: const Text('İptal'),
+//                 //           ),
+//                 //           TextButton(
+//                 //               onPressed: () {
+//                 //                 final ClassRoom classRoom;
+//                 //
+//                 //                 print(_formKey.currentState!.value);
+//                 //
+//                 //                 // classRoom = ClassRoom.fromJson(
+//                 //                 //     _formKey.currentState!.value);
+//                 //                 Navigator.pop(context, 'OK');
+//                 //               },
+//                 //               child: Text("OK"))
+//                 //         ],
+//                 //       ),
+//                 //     );
+//                 //   },
+//                 //   child: Text("Sınıf Oluştur"),
+//                 // ),
+//                 )
+//           ],
+//         ),
+//       ],
+//     );
+//   }
+// }
