@@ -13,7 +13,11 @@ class User with _$User {
       required final String phoneNumber,
       required final String tc,
       required final String branch,
+      @Default("https://t4.ftcdn.net/jpg/00/64/67/63/360_F_64676383_LdbmhiNM6Ypzb3FM4PPuFP9rHe7ri8Ju.jpg")
+          String profilePicture,
       required final List<String> classroom,
+      @Default([])
+          List<String> waitAppo,
       required final Gender gender}) = Teacher;
 
   @JsonSerializable(explicitToJson: true)
@@ -23,6 +27,10 @@ class User with _$User {
       required final String phoneNumber,
       required final String tc,
       required final Gender gender,
+      @Default([])
+          List<String> waitAppo,
+      @Default("https://t4.ftcdn.net/jpg/00/64/67/63/360_F_64676383_LdbmhiNM6Ypzb3FM4PPuFP9rHe7ri8Ju.jpg")
+          String profilePicture,
       required final List<String> classroom,
       required final Student student}) = Parent;
 
